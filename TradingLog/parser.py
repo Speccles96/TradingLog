@@ -1,4 +1,6 @@
 import pandas as pd
+pd.options.mode.chained_assignment = None
+
 import glob
 import numpy as np
 import os
@@ -16,9 +18,6 @@ class Parse:
         self.parse_input()
         
 
-    def print_head(self):
-        print(self.df.head())
-
     def determine_input_type(self):
         if '.tlg' in self.path:
             self.filetype = 'tlg'
@@ -26,12 +25,14 @@ class Parse:
             self.filetype = 'ofx'
         elif os.path.isdir(self.path) == True:
             self.filetype = 'dir'
+        else:
+            self.filetype = None
         return self.filetype       
 
-    def parse_input(self):
 
-        if self.filetype == '.tlg':
-            df = pd.read_csv(data,sep='delimiter', header=None,engine='python')
+    def parse_input(self):
+        if self.filetype == 'tlg':
+            df = pd.read_csv(self.path,sep='delimiter', header=None,engine='python')
             df = df[0].str.split('|',expand=True)
             df = df.fillna(value=np.nan)
         
@@ -40,48 +41,25 @@ class Parse:
 
             df_from_each_file = (pd.read_csv(f,sep='delimiter', header=None,engine='python') for f in all_files)
             df = pd.concat(df_from_each_file, ignore_index=True)
+
             df = df[0].str.split('|',expand=True)
             df = df.fillna(value=np.nan)
     
-        else:
-            print('Error')
+        elif self.filetype == None:
+            print(f'Error: File type not supported. Check source of file at {print(self.path)}')
             
-        print(df)
+    
         
         #Variables
-        headers = []
-        headers_index = sorted([len(df)])
         dfs = {}
-        previous_index = 0
-        count=0
+
         
-        #Iterates through df rows
-        for line in range(0,len(df)):
-            
-            #Indexes by titles
-            #TODO probably a better way to do this than by > 7. Fix later...maybe
-            if len(df[0].iloc[line]) > 7:
-                
-                #Creates header name and index 
-                header = df[0].iloc[line]
-                header_index = df.index.get_loc(line)
-                
-                
-                #Stores header name and index  to list 
-                headers.append(header)
-                headers_index.append(header_index)
-                
-                #appends multiple dataframes for each category header to dict for output
-            previous_index = header_index
-            headers_index = sorted(headers_index)
-            
-            
-        for header in headers:
-            index1 = headers_index[count]
-            index2 = headers_index[count+1]
-            dfs[header] = df.iloc[index1:index2]
-            
-            count += 1
+        #Slices datafame and assigns to dictionary
+        dfs['ACCOUNT_INFORMATION'] = df[df[0] == 'ACT_INF'].drop_duplicates()
+        dfs['OPTION_TRANSACTIONS'] = df[df[0] == 'OPT_TRD']
+        dfs['STOCK TRANSACTIONS'] = df[df[0] == 'STK_TRD']
+        dfs['STOCK_POSITIONS'] = df[df[0] == 'STK_LOT']
+        dfs['OPTION_POSITIONS'] = df[df[0] == 'OPT_LOT']
             
             
         #Column Transformations to output proper format
@@ -103,9 +81,12 @@ class Parse:
         dfs['OPTION_TRANSACTIONS']['date_time'] = dfs['OPTION_TRANSACTIONS']['date_time'].apply(lambda x: pd.to_datetime(x).strftime('%Y-%m-%d %H:%M:%S'))
         
         self.optxs = dfs['OPTION_TRANSACTIONS']
+        self.stktxs = dfs['STOCK TRANSACTIONS']
+        self.acctinfo = dfs['ACCOUNT_INFORMATION']
+        self.optpostions = dfs['OPTION_POSITIONS']
+        self.stkpositions = dfs['STOCK_POSITIONS']
         self.dfs = dfs
-        return 
 
-
+        
 #parse_tlg('/Users/david/Downloads/')
 #'/Users/david/Downloads/trade_log.tlg'
