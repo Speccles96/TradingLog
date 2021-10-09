@@ -1,1 +1,1 @@
-# ibkr_trading_log
+# TradingLog
