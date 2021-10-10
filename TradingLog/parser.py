@@ -48,21 +48,21 @@ class Parse:
         elif self.filetype == None:
             print(f'Error: File type not supported. Check source of file at {print(self.path)}')
             
-    
-        
+
         #Variables
         dfs = {}
+        df = df.drop_duplicates()
 
         
         #Slices datafame and assigns to dictionary
         dfs['ACCOUNT_INFORMATION'] = df[df[0] == 'ACT_INF'].drop_duplicates()
-        dfs['OPTION_TRANSACTIONS'] = df[df[0] == 'OPT_TRD']
-        dfs['STOCK TRANSACTIONS'] = df[df[0] == 'STK_TRD']
-        dfs['STOCK_POSITIONS'] = df[df[0] == 'STK_LOT']
-        dfs['OPTION_POSITIONS'] = df[df[0] == 'OPT_LOT']
+        dfs['OPTION_TRANSACTIONS'] = df[df[0] == 'OPT_TRD'].drop_duplicates()
+        dfs['STOCK TRANSACTIONS'] = df[df[0] == 'STK_TRD'].drop_duplicates()
+        dfs['STOCK_POSITIONS'] = df[df[0] == 'STK_LOT'].drop_duplicates()
+        dfs['OPTION_POSITIONS'] = df[df[0] == 'OPT_LOT'].drop_duplicates(subset=['fitid','date_time'])
             
             
-        #Column Transformations to output proper format
+        #Column Transformations to output proper format for option transactions
         dfs['OPTION_TRANSACTIONS']['symbol'] = dfs['OPTION_TRANSACTIONS'][2].str.split(' ').str[0]
         dfs['OPTION_TRANSACTIONS'].columns = ['option_txs','fitid','option_ticker','opt_description',
                                             'exchange','optselltype','buy_sell_type','date','time',
@@ -71,7 +71,6 @@ class Parse:
                                             ]
         
         dfs['OPTION_TRANSACTIONS']['buy_sell_type'] = dfs['OPTION_TRANSACTIONS']['buy_sell_type'].str.split(';').str[0]
-        
         dfs['OPTION_TRANSACTIONS']['strike'] = dfs['OPTION_TRANSACTIONS']['opt_description'].str.split(' ').str[2]
         dfs['OPTION_TRANSACTIONS']['opt_type']  = dfs['OPTION_TRANSACTIONS']['opt_description'].str.split(' ').str[-1]
         dfs['OPTION_TRANSACTIONS']['expiration'] = dfs['OPTION_TRANSACTIONS']['option_ticker'].str.split(' ').str[-1].str.split('C').str[0].str.split('P').str[0]
@@ -79,7 +78,10 @@ class Parse:
         dfs['OPTION_TRANSACTIONS']['date_time'] = dfs['OPTION_TRANSACTIONS']['date']+' '+dfs['OPTION_TRANSACTIONS']['time']
         pd.to_datetime(dfs['OPTION_TRANSACTIONS']['date_time'],format='%Y%m%d %H:%M:%S')
         dfs['OPTION_TRANSACTIONS']['date_time'] = dfs['OPTION_TRANSACTIONS']['date_time'].apply(lambda x: pd.to_datetime(x).strftime('%Y-%m-%d %H:%M:%S'))
+        #dfs['OPTION_TRANSACTIONS']['ticker'] = dfs['OPTION_TRANSACTIONS']['option_ticker'].str.extract(r'([^0-9][^0-9]?[^0-9]?[^0-9])')
         
+
+        #Assigns dataframes to variables
         self.optxs = dfs['OPTION_TRANSACTIONS']
         self.stktxs = dfs['STOCK TRANSACTIONS']
         self.acctinfo = dfs['ACCOUNT_INFORMATION']
