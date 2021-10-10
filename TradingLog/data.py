@@ -7,6 +7,8 @@ import pandas_datareader as dr
 
 from helpers import hour_rounder
 
+ib  = IB
+
 
 class DataEngine():
     def __init__(self):
@@ -34,6 +36,7 @@ class DataEngine():
                 ib.connect('127.0.0.1', 4001, clientId=1)
                 print('Connection Accepted through Gateway')
                 pass
+
 
     def disconnect_ibkr(self):
         ib.disconnect()
@@ -118,6 +121,16 @@ class DataEngine():
         today = datetime.today()
 
         df = dr.get_data_yahoo(ticker)
+        df = df.reset_index()
+        df.columns = df.columns.str.lower()
+        df = df.rename(columns={'date':'date_time'})
 
         return df
 
+
+        txs = pd.merge(txs,df[['date_time','open','close']],on='date_time', how='left').drop_duplicates()
+        df = df[df['date_time'] >=txs['date_time'].min()-timedelta(60)]
+
+        self.disconnect_ibkr()
+            
+        return df,txs, ticker 
