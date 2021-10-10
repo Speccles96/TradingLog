@@ -51,7 +51,6 @@ class Parse:
 
         #Variables
         dfs = {}
-        df = df.drop_duplicates()
 
         
         #Slices datafame and assigns to dictionary
@@ -59,7 +58,7 @@ class Parse:
         dfs['OPTION_TRANSACTIONS'] = df[df[0] == 'OPT_TRD'].drop_duplicates()
         dfs['STOCK TRANSACTIONS'] = df[df[0] == 'STK_TRD'].drop_duplicates()
         dfs['STOCK_POSITIONS'] = df[df[0] == 'STK_LOT'].drop_duplicates()
-        dfs['OPTION_POSITIONS'] = df[df[0] == 'OPT_LOT'].drop_duplicates(subset=['fitid','date_time'])
+        dfs['OPTION_POSITIONS'] = df[df[0] == 'OPT_LOT'].drop_duplicates()
             
             
         #Column Transformations to output proper format for option transactions
