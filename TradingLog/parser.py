@@ -10,33 +10,39 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
 class Parse:
-    def __init__(self, data):
-        pd.set_option('display.max_columns', None)
-        pd.set_option('display.max_rows', None)
-        self.path = str(data)
-        self.determine_input_type()
-        self.parse_input()
+    def __init__(self):
+        pass
         
 
-    def determine_input_type(self):
+    def determine_input_type(self,path):
+
+        '''
+        Determines file type to pass to parser. Accepts .tlg and .ofx files. Accepts directory of .tlg files.
+        '''
+        self.path = path
+        
         if '.tlg' in self.path:
             self.filetype = 'tlg'
         elif '.ofx' in self.path:
             self.filetype = 'ofx'
-        elif os.path.isdir(self.path) == True:
-            self.filetype = 'dir'
+        elif os.path.isdir(self.path) == True and len([f for f in os.listdir(path) if f.endswith('.tlg')]) >0:
+            self.filetype = 'dir_tlg'
         else:
             self.filetype = None
-        return self.filetype       
+        return self.filetype
+        
 
 
-    def parse_input(self):
+    def parse_input(self,path):
+
+        self.determine_input_type(path)
+
         if self.filetype == 'tlg':
             df = pd.read_csv(self.path,sep='delimiter', header=None,engine='python')
             df = df[0].str.split('|',expand=True)
             df = df.fillna(value=np.nan)
         
-        elif self.filetype == 'dir':
+        elif self.filetype == 'dir_tlg':
             all_files = glob.glob(os.path.join(self.path, "*.tlg"))     # advisable to use os.path.join as this makes concatenation OS independent
 
             df_from_each_file = (pd.read_csv(f,sep='delimiter', header=None,engine='python') for f in all_files)
@@ -87,6 +93,8 @@ class Parse:
         self.optpostions = dfs['OPTION_POSITIONS']
         self.stkpositions = dfs['STOCK_POSITIONS']
         self.dfs = dfs
+
+        return self.dfs
 
         
 #parse_tlg('/Users/david/Downloads/')
