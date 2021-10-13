@@ -256,22 +256,25 @@ class DataEngine():
 
     def multiple_securities_from_yahoo(self,txs):
 
-        txs['date'] = pd.to_datetime(txs['date'],format='%Y%m%d')
+        #txs['date'] = pd.to_datetime(txs['date'],format='%Y%m%d')
 
 
         #Convert Expiration to DT
-        txs['expiration'] = pd.to_datetime(txs['expiration'],yearfirst=True)
+        #txs['expiration'] = pd.to_datetime(txs['expiration'],yearfirst=True)
         txs['date_time'] = txs['date_time'].apply(lambda x: half_hour_rounder(pd.to_datetime(x))).astype('datetime64[ns]')
         txs['units'] = txs['units'].astype('float64')
 
-        expir_date = txs['expiration'].max()
-        currency = txs['currency'].iloc[0]
-        start_date = txs['date'].min()
-        days = expir_date - start_date
-        today = datetime.today()
+        try:
+            expir_date = txs['expiration'].max()
+            currency = txs['currency'].iloc[0]
+            start_date = txs['date'].min()
+            days = expir_date - start_date
+            today = datetime.today()
 
-        if today > expir_date:
-            days = (today-start_date) + timedelta(60)
+            if today > expir_date:
+                days = (today-start_date) + timedelta(60)
+        except:
+            pass
 
         self.ohlc = yq.Ticker(txs['symbol'].unique() ,asynchronous=True).history(start='2020-01-01', interval='1h').reset_index()
         self.ohlc = self.ohlc.rename(columns={'date':'date_time'})
