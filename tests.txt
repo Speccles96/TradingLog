@@ -1,3 +1,0 @@
-p = Parse()
-d = DataEngine()
-p.parse_input('/Users/david/Downloads/trade_log.tlg')

@@ -22,16 +22,25 @@ class Parse:
         '''
         Determines file type to pass to parser. Accepts .tlg and .ofx files. Accepts directory of .tlg files.
         '''
-        self.path = path
-        
-        if '.tlg' in self.path:
-            self.filetype = 'tlg'
-        elif '.ofx' in self.path:
-            self.filetype = 'ofx'
-        elif os.path.isdir(self.path) == True and len([f for f in os.listdir(path) if f.endswith('.tlg')]) >0:
-            self.filetype = 'dir_tlg'
-        else:
+
+        try:
+            self.path = path
+            
+            if '.tlg' in self.path:
+                self.filetype = 'tlg'
+
+            elif '.ofx' in self.path:
+                self.filetype = 'ofx'
+
+            elif os.path.isdir(self.path) == True and len([f for f in os.listdir(path) if f.endswith('.tlg')]) >0:
+                self.filetype = 'dir_tlg'
+
+            elif os.path.isdir(self.path) == True and len([f for f in os.listdir(path) if f.endswith('.ofx')]) >0:
+                self.filetype = 'dir_tlg'
+        except:
+            print('File is not .tlg or .ofx or directory contains mix of files.\n Ensure directory only has one file type or single path points to .ofx or .tlg file.')
             self.filetype = None
+
         return self.filetype
         
 
@@ -57,25 +66,21 @@ class Parse:
             self.parse_tlg(df)
     
         elif self.filetype == 'ofx':
-            ofx = self.parse_ofx(path)
-            optxs,stktxs = self.ofx_transactions(ofx)
-            seclist = self.ofx_security_list(ofx)
-            self.optxs = pd.merge(optxs,seclist,on='uniqueid', how='left').drop_duplicates()
-            self.stktxs = pd.merge(stktxs,seclist,on='uniqueid', how='left').drop_duplicates()
-        
+            self.parse_ofx(path)
         
         
         elif self.filetype == None:
             print(f'Error: File type not supported. Check source of file at {print(self.path)}')
             
 
-        
-    
-
     def parse_ofx(self,path):
-        with codecs.open(path) as fileobj:
-            ofx = OfxParser.parse(fileobj)
-        return ofx
+        ofx = self.read_ofx(path)
+        optxs,stktxs = self.ofx_transactions(ofx)
+        seclist = self.ofx_security_list(ofx)
+        self.optxs = pd.merge(optxs,seclist,on='uniqueid', how='left').drop_duplicates()
+        self.stktxs = pd.merge(stktxs,seclist,on='uniqueid', how='left').drop_duplicates()
+        return self.optxs, self.stktxs
+    
 
 
     
@@ -120,6 +125,11 @@ class Parse:
 
         return self.dfs
 
+    def read_ofx(self,path):
+        with codecs.open(path) as fileobj:
+            ofx = OfxParser.parse(fileobj)
+        return ofx
+
 
     def ofx_transactions(self,ofx):
 
@@ -132,16 +142,15 @@ class Parse:
                     txs_list.append([tx.type, tx.tradeDate,tx.security,
                     tx.income_type,tx.units,tx.unit_price,tx.commission,tx.fees,tx.total,tx.tferaction]) 
 
-        txs_columns =  ['tx_type','date_time','uniqueid','income_type',
-                        'units','unit_price','commission','fees','total','tferaction']
+        txs_columns =  ['tx_type','date_time','uniqueid','income_type','units','unit_price','commission','fees','total','tferaction']
           
 
         txs = pd.DataFrame(txs_list,columns=txs_columns)
 
-        optxs = txs[(txs['tx_type'] =='buyopt') | (txs['tx_type'] == 'sellopt')]
-        stktxs = txs[(txs['tx_type'] =='buystock') | (txs['tx_type'] == 'sellstock')]
+        self.optxs = txs[(txs['tx_type'] =='buyopt') | (txs['tx_type'] == 'sellopt')]
+        self.stktxs = txs[(txs['tx_type'] =='buystock') | (txs['tx_type'] == 'sellstock')]
         
-        return optxs, stktxs
+        return self.optxs, self.stktxs
 
 
     def ofx_security_list(self,ofx):
@@ -160,3 +169,4 @@ class Parse:
         
 #parse_tlg('/Users/david/Downloads/')
 #'/Users/david/Downloads/trade_log.tlg'
+#'/Users/david/Downloads/U3913547_20210101_20211008.ofx'

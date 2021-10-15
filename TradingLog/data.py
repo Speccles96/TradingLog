@@ -1,5 +1,4 @@
 from ib_insync import IB, util, Stock
-from parser import Parse
 import pandas as pd
 from datetime import datetime, timedelta
 import math
@@ -102,7 +101,7 @@ class DataEngine():
         #Convert Expiration to DT
         txs['expiration'] = pd.to_datetime(txs['expiration'],yearfirst=True)
         txs['date_time'] = pd.to_datetime(txs['date_time'])
-        txs['rounded_date_time'] = txs['date_time'].apply(lambda x: hour_rounder(pd.to_datetime(x))).astype('datetime64[ns]')
+        txs['rounded_date_time'] = txs['date_time'].dt.round('60min')
         txs['units'] = txs['units'].astype('float64')
 
         expir_date = txs['expiration'].max()
@@ -199,7 +198,7 @@ class DataEngine():
 
         #Convert Expiration to DT
         txs['expiration'] = pd.to_datetime(txs['expiration'],yearfirst=True)
-        txs['date_time'] = txs['date_time'].apply(lambda x: hour_rounder(pd.to_datetime(x))).astype('datetime64[ns]')
+        txs['date_time'] = txs['date_time'].dt.round('60min')
         txs['units'] = txs['units'].astype('float64')
 
         expir_date = txs['expiration'].max()
@@ -261,7 +260,7 @@ class DataEngine():
 
         #Convert Expiration to DT
         #txs['expiration'] = pd.to_datetime(txs['expiration'],yearfirst=True)
-        txs['date_time'] = txs['date_time'].apply(lambda x: half_hour_rounder(pd.to_datetime(x))).astype('datetime64[ns]')
+        txs['date_time'] = txs['date_time'].dt.round('30min')
         txs['units'] = txs['units'].astype('float64')
 
         try:
