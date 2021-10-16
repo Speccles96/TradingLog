@@ -1,3 +1,4 @@
+from math import nan
 import pandas as pd
 pd.options.mode.chained_assignment = None
 
@@ -17,33 +18,6 @@ class Parse:
         pass
         
 
-    def determine_input_type(self,path):
-
-        '''
-        Determines file type to pass to parser. Accepts .tlg and .ofx files. Accepts directory of .tlg files.
-        '''
-
-        try:
-            self.path = path
-            
-            if '.tlg' in self.path:
-                self.filetype = 'tlg'
-
-            elif '.ofx' in self.path:
-                self.filetype = 'ofx'
-
-            elif os.path.isdir(self.path) == True and len([f for f in os.listdir(path) if f.endswith('.tlg')]) >0:
-                self.filetype = 'dir_tlg'
-
-            elif os.path.isdir(self.path) == True and len([f for f in os.listdir(path) if f.endswith('.ofx')]) >0:
-                self.filetype = 'dir_tlg'
-        except:
-            print('File is not .tlg or .ofx or directory contains mix of files.\n Ensure directory only has one file type or single path points to .ofx or .tlg file.')
-            self.filetype = None
-
-        return self.filetype
-        
-
 
     def parse_input(self,path):
 
@@ -56,13 +30,13 @@ class Parse:
             self.parse_tlg(df)
         
         elif self.filetype == 'dir_tlg':
+            #Reads all .tlg's in directory
             all_files = glob.glob(os.path.join(self.path, "*.tlg"))     # advisable to use os.path.join as this makes concatenation OS independent
-
             df_from_each_file = (pd.read_csv(f,sep='delimiter', header=None,engine='python') for f in all_files)
             df = pd.concat(df_from_each_file, ignore_index=True)
-
             df = df[0].str.split('|',expand=True)
             df = df.fillna(value=np.nan)
+            
             self.parse_tlg(df)
     
         elif self.filetype == 'ofx':
@@ -71,6 +45,7 @@ class Parse:
         
         elif self.filetype == None:
             print(f'Error: File type not supported. Check source of file at {print(self.path)}')
+           
             
 
     def parse_ofx(self,path):
@@ -98,7 +73,7 @@ class Parse:
             
         #Column Transformations to output proper format for option transactions
         dfs['OPTION_TRANSACTIONS']['symbol'] = dfs['OPTION_TRANSACTIONS'][2].str.split(' ').str[0]
-        dfs['OPTION_TRANSACTIONS'].columns = ['option_txs','fitid','option_ticker','opt_description',
+        dfs['OPTION_TRANSACTIONS'].columns = ['tx_type','uniqueid','option_ticker','opt_description',
                                             'exchange','optselltype','buy_sell_type','date','time',
                                             'currency','units','100','unit_price',
                                             'total_price','commission','currate','symbol'
@@ -118,17 +93,25 @@ class Parse:
         #Assigns dataframes to variables
         self.optxs = dfs['OPTION_TRANSACTIONS']
         self.stktxs = dfs['STOCK TRANSACTIONS']
+
+        #These categories are parseable from the file but are not needed for the program
+        #Ommitted to ensure .tlg and ofx have simialr outputs
+        '''
         self.acctinfo = dfs['ACCOUNT_INFORMATION']
         self.optpostions = dfs['OPTION_POSITIONS']
         self.stkpositions = dfs['STOCK_POSITIONS']
         self.dfs = dfs
+        '''
 
-        return self.dfs
+        return self.optxs, self.stktxs
+
+
 
     def read_ofx(self,path):
         with codecs.open(path) as fileobj:
             ofx = OfxParser.parse(fileobj)
         return ofx
+
 
 
     def ofx_transactions(self,ofx):
@@ -142,15 +125,26 @@ class Parse:
                     txs_list.append([tx.type, tx.tradeDate,tx.security,
                     tx.income_type,tx.units,tx.unit_price,tx.commission,tx.fees,tx.total,tx.tferaction]) 
 
-        txs_columns =  ['tx_type','date_time','uniqueid','income_type','units','unit_price','commission','fees','total','tferaction']
+        txs_columns =  ['tx_type','date_time','uniqueid','income_type','units','unit_price','commission','fees','total_price','tferaction']
           
 
         txs = pd.DataFrame(txs_list,columns=txs_columns)
 
-        self.optxs = txs[(txs['tx_type'] =='buyopt') | (txs['tx_type'] == 'sellopt')]
-        self.stktxs = txs[(txs['tx_type'] =='buystock') | (txs['tx_type'] == 'sellstock')]
+        optxs = txs[(txs['tx_type'] =='buyopt') | (txs['tx_type'] == 'sellopt')]
+        optxs['date'] = optxs['date_time'].dt.strftime('%Y-%m-%d')
+        optxs['time'] = optxs['date_time'].dt.strftime('%H:%M:%S')
+        
+
+
+
+        stktxs = txs[(txs['tx_type'] =='buystock') | (txs['tx_type'] == 'sellstock')]
+
+        self.optxs = optxs
+        self.stktxs = stktxs
         
         return self.optxs, self.stktxs
+
+
 
 
     def ofx_security_list(self,ofx):
@@ -163,9 +157,41 @@ class Parse:
         df['opt_description'] = df['name'].str.split('  ').str[-1]
         df['exchange'] = None
         df['opt_type'] = df['name'].str.split(' ').str[-1]
-
+        df['strike'] = df['name'].str.split(' ').str[-2]
+        df['expiration'] = df['name'].apply(lambda row: row.split(' ')[-3]  if len(row.split(' '))>=7 else np.nan)
+        df['expiration'] = pd.to_datetime(df['expiration']).dt.strftime('%y%m%d')
+#df['expiration'].apply(lambda row: print(row))
+        #.apply(lambda x: x['c'] if x['c']>0 else x['b'], axis=1)
         return df
 
+
+
+
+    def determine_input_type(self,path):
+
+        '''
+        Determines file type to pass to parser. Accepts .tlg and .ofx files. Accepts directory of .tlg files.
+        '''
+
+        try:
+            self.path = path
+            
+            if '.tlg' in self.path:
+                self.filetype = 'tlg'
+
+            elif '.ofx' in self.path:
+                self.filetype = 'ofx'
+
+            elif os.path.isdir(self.path) == True and len([f for f in os.listdir(path) if f.endswith('.tlg')]) >0:
+                self.filetype = 'dir_tlg'
+
+            elif os.path.isdir(self.path) == True and len([f for f in os.listdir(path) if f.endswith('.ofx')]) >0:
+                self.filetype = 'dir_tlg'
+        except:
+            print('File is not .tlg or .ofx or directory contains mix of files.\n Ensure directory only has one file type or single path points to .ofx or .tlg file.')
+            self.filetype = None
+
+        return self.filetype
         
 #parse_tlg('/Users/david/Downloads/')
 #'/Users/david/Downloads/trade_log.tlg'

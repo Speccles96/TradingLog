@@ -275,7 +275,7 @@ class DataEngine():
         except:
             pass
 
-        self.ohlc = yq.Ticker(txs['symbol'].unique() ,asynchronous=True).history(start='2020-01-01', interval='1h').reset_index()
+        self.ohlc = yq.Ticker(txs['symbol'].unique() ,asynchronous=True).history(start='2020-01-01', interval='30m').reset_index()
         self.ohlc = self.ohlc.rename(columns={'date':'date_time'})
 
         

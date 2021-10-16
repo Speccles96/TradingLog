@@ -42,9 +42,9 @@ class Plotting:
         '''
         # standardize column names & create buy/sell dataframes
         ohlc.columns = ohlc.columns.str.lower()
-        buys = txs[txs['units']>0]
-        sells = txs[txs['units']<0]
-        print(txs['total'])
+        buys = txs[(txs['units']>0) & (txs['symbol'] == ticker)]
+        sells = txs[(txs['units']<0) & (txs['symbol'] == ticker)]
+        
         
         fig = make_subplots(rows=2, cols=1,specs=[[{"secondary_y": True}],
                                                 [{"secondary_y": True}]])
@@ -103,7 +103,7 @@ class Plotting:
                         hoverdistance=0,hovermode='y',title=f"{ticker} - Total PNL: ${-txs['total'].astype('float64').sum()}")
         
 
-        return fig
+        return buys,sells,ohlc
 
 
 
