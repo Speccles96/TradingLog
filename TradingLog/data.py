@@ -6,8 +6,6 @@ import pandas_datareader as dr
 from tqdm import tqdm
 import yahooquery as yq 
 
-from helpers import half_hour_rounder, hour_rounder
-
 ib  = IB()
 
 
@@ -260,7 +258,8 @@ class DataEngine():
 
         #Convert Expiration to DT
         #txs['expiration'] = pd.to_datetime(txs['expiration'],yearfirst=True)
-        txs['date_time'] = txs['date_time'].dt.round('30min')
+        txs['trade_time'] = txs['date_time']
+        txs['date_time'] = pd.to_datetime(txs['date_time'])
         txs['units'] = txs['units'].astype('float64')
 
         try:
@@ -275,7 +274,7 @@ class DataEngine():
         except:
             pass
 
-        self.ohlc = yq.Ticker(txs['symbol'].unique() ,asynchronous=True).history(start='2020-01-01', interval='30m').reset_index()
+        self.ohlc = yq.Ticker(txs['symbol'].unique() ,asynchronous=True).history(start='2020-01-01', interval='60m').reset_index()
         self.ohlc = self.ohlc.rename(columns={'date':'date_time'})
 
         

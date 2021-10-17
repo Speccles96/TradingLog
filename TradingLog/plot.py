@@ -41,11 +41,34 @@ class Plotting:
         Returns Plotly figure if passed a ohlc containing 1 tickers transactions
         '''
         # standardize column names & create buy/sell dataframes
-        ohlc.columns = ohlc.columns.str.lower()
+        
+        ohlc = ohlc[ohlc['symbol'] == ticker]
+        txs['trade_time'] = txs['date_time'] 
+
+        if round(sum(ohlc['date_time'].dt.minute)/len(ohlc['date_time'])) == 30:
+            txs['date_time'] = txs['date_time'].apply(lambda date: date.replace(minute=30,second=00))
+
+    
+
+        
+        txs = txs[txs['symbol'] == ticker]
+        txs['units'] = txs['units'].astype('int64')
+        
+
+        txs = pd.merge(txs,ohlc[['date_time','open','close']],on='date_time', how='left').drop_duplicates()
+    
+
         buys = txs[(txs['units']>0) & (txs['symbol'] == ticker)]
         sells = txs[(txs['units']<0) & (txs['symbol'] == ticker)]
         
+        min_date = txs['date_time'].min() - timedelta(60)
+        max_date = txs['date_time'].max() + timedelta(60)
         
+        ohlc = ohlc[(ohlc['date_time']>min_date) & (ohlc['date_time']<max_date)]
+        
+
+
+
         fig = make_subplots(rows=2, cols=1,specs=[[{"secondary_y": True}],
                                                 [{"secondary_y": True}]])
         
@@ -100,10 +123,9 @@ class Plotting:
                                                                     ]),
                         xaxis_rangeslider_visible=True,
                         height=800,width=1400,
-                        hoverdistance=0,hovermode='y',title=f"{ticker} - Total PNL: ${-txs['total'].astype('float64').sum()}")
+                        hoverdistance=0,hovermode='y',title=f"{ticker} - Total PNL: ${-txs['total_price'].astype('float64').sum()}")
         
-
-        return buys,sells,ohlc
+        return fig, ohlc, buys, sells
 
 
 
