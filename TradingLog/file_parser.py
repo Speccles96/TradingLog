@@ -126,17 +126,12 @@ class Parse:
                     tx.income_type,tx.units,tx.unit_price,tx.commission,tx.fees,tx.total,tx.tferaction]) 
 
         txs_columns =  ['tx_type','date_time','uniqueid','income_type','units','unit_price','commission','fees','total_price','tferaction']
-          
-
         txs = pd.DataFrame(txs_list,columns=txs_columns)
 
         optxs = txs[(txs['tx_type'] =='buyopt') | (txs['tx_type'] == 'sellopt')]
         optxs['date'] = optxs['date_time'].dt.strftime('%Y-%m-%d')
         optxs['time'] = optxs['date_time'].dt.strftime('%H:%M:%S')
         
-
-
-
         stktxs = txs[(txs['tx_type'] =='buystock') | (txs['tx_type'] == 'sellstock')]
 
         self.optxs = optxs
@@ -160,8 +155,7 @@ class Parse:
         df['strike'] = df['name'].str.split(' ').str[-2]
         df['expiration'] = df['name'].apply(lambda row: row.split(' ')[-3]  if len(row.split(' '))>=7 else np.nan)
         df['expiration'] = pd.to_datetime(df['expiration']).dt.strftime('%y%m%d')
-#df['expiration'].apply(lambda row: print(row))
-        #.apply(lambda x: x['c'] if x['c']>0 else x['b'], axis=1)
+
         return df
 
 
@@ -193,6 +187,3 @@ class Parse:
 
         return self.filetype
         
-#parse_tlg('/Users/david/Downloads/')
-#'/Users/david/Downloads/trade_log.tlg'
-#'/Users/david/Downloads/U3913547_20210101_20211008.ofx'

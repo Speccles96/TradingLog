@@ -14,34 +14,16 @@ ib = IB()
 
 class Plotting:
     def __init__(self,ohlc=None):
-        self.ohlc = ohlc
+        pass    
 
-    def plot(self,engine):
-        pass
-
-
-    def plot_ibkr(self):
-        self.connect_to_ibkr()
-        print('1')
-        print('2')
-        self.disconnect_ibkr()
-
-        
-     
-    def plot_yahoo_finance(self):
-        pass
-
-    
+    def plot(self,ohlc,txs,ticker):
+        ohlc, txs, buys, sells = self.prep_data(ohlc,txs,ticker)
+        fig = self.graph_plotly(ohlc,txs,buys,sells,ticker)
+        return fig.show()
 
 
+    def prep_data(self,ohlc,txs,ticker):
 
-
-    def graph(self,ohlc,txs,ticker):
-        '''
-        Returns Plotly figure if passed a ohlc containing 1 tickers transactions
-        '''
-        # standardize column names & create buy/sell dataframes
-        
         ohlc = ohlc[ohlc['symbol'] == ticker]
         txs['trade_time'] = txs['date_time'] 
 
@@ -65,10 +47,18 @@ class Plotting:
         max_date = txs['date_time'].max() + timedelta(60)
         
         ohlc = ohlc[(ohlc['date_time']>min_date) & (ohlc['date_time']<max_date)]
+
+        return ohlc, txs, buys, sells
+
+
+
+    def graph_plotly(self,ohlc,txs,buys,sells,ticker):
+
+        '''
+        Plots data from 
+        '''
+
         
-
-
-
         fig = make_subplots(rows=2, cols=1,specs=[[{"secondary_y": True}],
                                                 [{"secondary_y": True}]])
         
@@ -123,9 +113,13 @@ class Plotting:
                                                                     ]),
                         xaxis_rangeslider_visible=True,
                         height=800,width=1400,
-                        hoverdistance=0,hovermode='y',title=f"{ticker} - Total PNL: ${-txs['total_price'].astype('float64').sum()}")
+                        hoverdistance=0,hovermode='y',title=f"{ticker} - Total PNL: ${-txs['total_price'].astype('float64').sum()}",
+                        template='plotly_dark'
+                        #paper_bgcolor='rgba(0,0,0,0)',
+                        #plot_bgcolor='rgba(0,0,0,0)'
+                        )
         
-        return fig, ohlc, buys, sells
+        return fig
 
 
 

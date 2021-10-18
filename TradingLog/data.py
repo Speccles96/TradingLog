@@ -99,7 +99,6 @@ class DataEngine():
         #Convert Expiration to DT
         txs['expiration'] = pd.to_datetime(txs['expiration'],yearfirst=True)
         txs['date_time'] = pd.to_datetime(txs['date_time'])
-        txs['rounded_date_time'] = txs['date_time'].dt.round('60min')
         txs['units'] = txs['units'].astype('float64')
 
         expir_date = txs['expiration'].max()
@@ -196,7 +195,6 @@ class DataEngine():
 
         #Convert Expiration to DT
         txs['expiration'] = pd.to_datetime(txs['expiration'],yearfirst=True)
-        txs['date_time'] = txs['date_time'].dt.round('60min')
         txs['units'] = txs['units'].astype('float64')
 
         expir_date = txs['expiration'].max()
